@@ -21,7 +21,7 @@ public class TopologyProducer {
         builder
             .stream("topic-a", Consumed.with(Serdes.String(), Serdes.String()))
 
-            .foreach((key, value) -> Log.infof("Consumingzz topic-a %s : %s", key, value));
+            .foreach((key, value) -> Log.infof("Consuming topic-a %s : %s", key, value));
 
         final Topology topology = builder.build();
 
