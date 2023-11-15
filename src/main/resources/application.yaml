@@ -9,9 +9,17 @@ quarkus:
       - "topic-a"
     bootstrap-servers: "localhost:9092"
 
-#kafka:
-#  bootstrap:
-#    servers: localhost:9092
+    # To prevent malformed messages from killing the whole topology
+    default:
+      deserialization:
+        exception:
+          handler: "org.apache.kafka.streams.errors.LogAndContinueExceptionHandler"
+
+
+# needed by Dev UI
+kafka:
+  bootstrap:
+    servers: localhost:9092
 
 # settings as per https://quarkus.io/guides/kafka-streams
 #group.min.session.timeout.ms=250

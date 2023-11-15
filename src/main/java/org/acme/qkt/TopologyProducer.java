@@ -1,5 +1,6 @@
 package org.acme.qkt;
 
+import io.quarkus.kafka.client.serialization.JsonObjectSerde;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
@@ -19,7 +20,7 @@ public class TopologyProducer {
         StreamsBuilder builder = new StreamsBuilder();
 
         builder
-            .stream("topic-a", Consumed.with(Serdes.String(), Serdes.String()))
+            .stream("topic-a", Consumed.with(Serdes.String(), new JsonObjectSerde()))
 
             .foreach((key, value) -> Log.infof("Consuming topic-a %s : %s", key, value));
 
