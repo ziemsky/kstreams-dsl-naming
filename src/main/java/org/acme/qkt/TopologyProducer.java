@@ -9,17 +9,24 @@ import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.Consumed;
 
 @ApplicationScoped
-public class TopologyProducerA {
+public class TopologyProducer {
+
+    record JsonObject(String payloadValue){}
 
     @Produces
-    public Topology topologyA() {
-        final StreamsBuilder streamsBuilder = new StreamsBuilder();
+    public Topology topology() {
 
-        streamsBuilder
+        StreamsBuilder builder = new StreamsBuilder();
+
+        builder
             .stream("topic-a", Consumed.with(Serdes.String(), Serdes.String()))
 
-            .foreach((key, value) -> Log.infof("Consuming topic-a %s : %s", key, value));
+            .foreach((key, value) -> Log.infof("Consumingzz topic-a %s : %s", key, value));
 
-        return streamsBuilder.build();
+        final Topology topology = builder.build();
+
+        Log.infof("Starting %s", topology.describe().toString());
+
+        return topology;
     }
 }

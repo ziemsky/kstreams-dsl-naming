@@ -1,0 +1,18 @@
+quarkus:
+  kafka:
+    devservices:
+      enabled: true
+
+  kafka-streams:
+    application-id: kstreams-dsl-naming
+    topics:
+      - "topic-a"
+
+kafka:
+  bootstrap:
+    servers: localhost:9092
+
+# settings as per https://quarkus.io/guides/kafka-streams
+#group.min.session.timeout.ms=250
+#kafka-streams.consumer.session.timeout.ms=250
+#kafka-streams.consumer.heartbeat.interval.ms=200

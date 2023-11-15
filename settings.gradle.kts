@@ -10,4 +10,4 @@ pluginManagement {
         id(quarkusPluginId) version quarkusPluginVersion
     }
 }
-rootProject.name = "quarkus-kstreams-topologies"
+rootProject.name = "kstreams-dsl-naming"
