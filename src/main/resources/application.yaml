@@ -3,17 +3,31 @@ quarkus:
     devservices:
       enabled: true
 
+custom:
+  kafka:
+    bootstrap-servers: "localhost:9092"
+    application-id: kstreams-dsl-naming
+    default-key-serde: "org.acme.qkt.StringSerde"
+    default-value-serde: "org.acme.qkt.StringSerde"
+    # To prevent malformed messages from killing the whole topology
+    deserialization-exception-handler: "org.apache.kafka.streams.errors.LogAndContinueExceptionHandler"
+
   kafka-streams:
     application-id: kstreams-dsl-naming
     topics:
-      - "topic-a"
-    bootstrap-servers: "localhost:9092"
+      - "customer-events-v1"
+      - "order-events-v1"
+#    bootstrap-servers: "localhost:9092"
 
     # To prevent malformed messages from killing the whole topology
-    default:
-      deserialization:
-        exception:
-          handler: "org.apache.kafka.streams.errors.LogAndContinueExceptionHandler"
+#    default:
+#      deserialization:
+#        exception:
+#          handler: "org.apache.kafka.streams.errors.LogAndContinueExceptionHandler"
+#      key:
+#        serde: "org.acme.qkt.StringSerde"
+#      value:
+#        serde: "org.acme.qkt.StringSerde"
 
 
 # needed by Dev UI
@@ -25,3 +39,5 @@ kafka:
 #group.min.session.timeout.ms=250
 #kafka-streams.consumer.session.timeout.ms=250
 #kafka-streams.consumer.heartbeat.interval.ms=200
+
+
