@@ -8,16 +8,15 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.*;
-import org.apache.kafka.streams.kstream.Consumed;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.*;
 
 import java.time.Duration;
 import java.util.Properties;
 
 @ApplicationScoped
 public class DisplayOrdersTopologyProducer {
+
+    public static final String TOPOLOGY_NAME = "display-order-events";
 
     private final KafkaConfig kafkaConfig;
     KafkaStreams kafkaStreams;
@@ -50,11 +49,16 @@ public class DisplayOrdersTopologyProducer {
 
     public void buildStream(@Observes StartupEvent startupEvent) {
 
+        Log.infof("Building %s topology", TOPOLOGY_NAME);
+
         final StreamsBuilder builder = new StreamsBuilder();
 
         final KTable<String, CustomerEvent> customersById = builder.table(
-            "customer-events-v1", // key: customerId
-            Materialized.with(Serdes.String(), new ObjectMapperSerde<>(CustomerEvent.class))
+            "customer-events-v1",
+            Materialized.with(
+                Serdes.String(), // key: customerId
+                new ObjectMapperSerde<>(CustomerEvent.class)
+            )
         );
 
         final KStream<String, OrderEvent> ordersById = builder.stream(
@@ -69,23 +73,33 @@ public class DisplayOrdersTopologyProducer {
 
         final KStream<String, OrderEvent> ordersByCustomerId = ordersById
             .map((orderId, orderEvent) -> KeyValue.pair(orderEvent.customerId(), orderEvent))
-            .repartition();
+            .repartition(Repartitioned.with(
+                Serdes.String(), // key: customerId
+                new ObjectMapperSerde<>(OrderEvent.class)
+            ));
 
         final KStream<String, DisplayOrderEvent> displayOrdersByCustomerId =
-            ordersByCustomerId.join(customersById,
-                (customerId, orderEvent, customerEvent) -> new DisplayOrderEvent(orderEvent.orderId(), customerEvent.customerName()));
+            ordersByCustomerId
+                .join(
+                    customersById,
+                    (customerId, orderEvent, customerEvent) -> new DisplayOrderEvent(orderEvent.orderId(), customerEvent.customerName())
+                );
 
         final KStream<String, DisplayOrderEvent> displayOrdersByOrderId =
-            displayOrdersByCustomerId.map(
+            displayOrdersByCustomerId
+                .map(
                     (customerId, displayOrderEvent) -> KeyValue.pair(displayOrderEvent.orderId(), displayOrderEvent)
                 )
-                .repartition();
+                .repartition(Repartitioned.with(
+                    Serdes.String(), // key: orderId
+                    new ObjectMapperSerde<>(DisplayOrderEvent.class)
+                ));
 
-        displayOrdersByOrderId.to("display-orders-v1");
+        displayOrdersByOrderId.to("display-order-events-v1");
 
         final Topology topology = builder.build();
 
-        Log.infof("Starting %s", topology.describe().toString());
+        Log.infof("%s %s", TOPOLOGY_NAME, topology.describe().toString());
 
         Properties properties = new Properties();
         properties.put(StreamsConfig.APPLICATION_ID_CONFIG, kafkaConfig.applicationId());
@@ -97,12 +111,16 @@ public class DisplayOrdersTopologyProducer {
         kafkaStreams = new KafkaStreams(topology, properties);
 
         kafkaStreams.setStateListener((newState, oldState) -> {
-            Log.infof("Kafka Streams state change %s -> ", oldState, newState);
+            Log.infof("%s topology state change %s -> %s", TOPOLOGY_NAME, oldState, newState);
 
-            if (KafkaStreams.State.RUNNING.equals(newState)) {
-                kafkaStreams.start();
-            }
+            // if (KafkaStreams.State.RUNNING.equals(newState)) {
+            //     Log.infof("% topology START", TOPOLOGY_NAME);
+            //     kafkaStreams.start();
+            // }
         });
+
+        Log.infof("%s topology START", TOPOLOGY_NAME);
+        kafkaStreams.start();
     }
 
     void stopStream(@Observes ShutdownEvent shutdownEvent) {
