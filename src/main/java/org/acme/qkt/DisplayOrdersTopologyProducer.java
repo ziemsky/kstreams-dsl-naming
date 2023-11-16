@@ -9,6 +9,7 @@ import jakarta.enterprise.event.Observes;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.*;
 import org.apache.kafka.streams.kstream.*;
+import org.apache.kafka.streams.state.Stores;
 
 import java.time.Duration;
 import java.util.Properties;
@@ -17,6 +18,7 @@ import java.util.Properties;
 public class DisplayOrdersTopologyProducer {
 
     public static final String TOPOLOGY_NAME = "display-order-events";
+    public static final int PARTITIONS_COUNT = 3;
 
     private final KafkaConfig kafkaConfig;
     KafkaStreams kafkaStreams;
@@ -53,13 +55,20 @@ public class DisplayOrdersTopologyProducer {
 
         final StreamsBuilder builder = new StreamsBuilder();
 
-        final KTable<String, CustomerEvent> customersById = builder.table(
-            "customer-events-v1",
-            Materialized.with(
-                Serdes.String(), // key: customerId
-                new ObjectMapperSerde<>(CustomerEvent.class)
+        final KTable<String, CustomerEvent> customersById = builder
+            .stream("customer-events-v1",
+                Consumed.with(
+                    Serdes.String(), // key: customerId
+                    new ObjectMapperSerde<>(CustomerEvent.class)
+                )
             )
-        );
+            .peek((customerId, customerEvent) -> Log.infof("Consuming %s", customerEvent))
+            .toTable(
+                Named.as("customersByIdTable"),
+                Materialized.<String, CustomerEvent>as(Stores.persistentKeyValueStore("customersByIdTableStore"))
+                    .withKeySerde(Serdes.String()) // key: customerId
+                    .withValueSerde(new ObjectMapperSerde<>(CustomerEvent.class))
+            );
 
         final KStream<String, OrderEvent> ordersById = builder.stream(
                 "order-events-v1",
@@ -68,32 +77,43 @@ public class DisplayOrdersTopologyProducer {
                     new ObjectMapperSerde<>(OrderEvent.class)
                 )
             )
-            .filter((orderId, orderEvent) -> OrderEventType.RAISED.equals(orderEvent.eventType()))
-            .peek((orderId, orderEvent) -> Log.infof("Consuming %s", orderId, orderEvent));
+            // .filter((orderId, orderEvent) -> OrderEventType.RAISED.equals(orderEvent.eventType()))
+            .peek((orderId, orderEvent) -> Log.infof("Consuming %s", orderEvent));
 
         final KStream<String, OrderEvent> ordersByCustomerId = ordersById
-            .map((orderId, orderEvent) -> KeyValue.pair(orderEvent.customerId(), orderEvent))
-            .repartition(Repartitioned.with(
-                Serdes.String(), // key: customerId
-                new ObjectMapperSerde<>(OrderEvent.class)
-            ));
+            .map((orderId, orderEvent) -> KeyValue.pair(
+                orderEvent.customerId(),
+                orderEvent
+            ))
+            .repartition(Repartitioned
+                .<String, OrderEvent>as("ordersByCustomerId")
+                .withKeySerde(Serdes.String()) // key: customerId
+                .withValueSerde(new ObjectMapperSerde<>(OrderEvent.class))
+                .withNumberOfPartitions(PARTITIONS_COUNT)
+            );
 
         final KStream<String, DisplayOrderEvent> displayOrdersByCustomerId =
             ordersByCustomerId
                 .join(
                     customersById,
-                    (customerId, orderEvent, customerEvent) -> new DisplayOrderEvent(orderEvent.orderId(), customerEvent.customerName())
+                    (customerId, orderEvent, customerEvent) -> new DisplayOrderEvent(
+                        orderEvent.orderId(),
+                        customerEvent.customerName()
+                    )
                 );
 
         final KStream<String, DisplayOrderEvent> displayOrdersByOrderId =
             displayOrdersByCustomerId
-                .map(
-                    (customerId, displayOrderEvent) -> KeyValue.pair(displayOrderEvent.orderId(), displayOrderEvent)
-                )
-                .repartition(Repartitioned.with(
-                    Serdes.String(), // key: orderId
-                    new ObjectMapperSerde<>(DisplayOrderEvent.class)
-                ));
+                .map((customerId, displayOrderEvent) -> KeyValue.pair(
+                        displayOrderEvent.orderId(),
+                        displayOrderEvent
+                ))
+                .repartition(Repartitioned
+                    .<String, DisplayOrderEvent>as("displayOrdersByOrderId")
+                    .withKeySerde(Serdes.String()) // key: orderId
+                    .withValueSerde(new ObjectMapperSerde<>(DisplayOrderEvent.class))
+                    .withNumberOfPartitions(PARTITIONS_COUNT)
+                );
 
         displayOrdersByOrderId.to("display-order-events-v1");
 
@@ -107,6 +127,7 @@ public class DisplayOrdersTopologyProducer {
         properties.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, kafkaConfig.defaultKeySerde());
         properties.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, kafkaConfig.defaultKeySerde());
         properties.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, kafkaConfig.deserializationExceptionHandler());
+        properties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 0);
 
         kafkaStreams = new KafkaStreams(topology, properties);
 
