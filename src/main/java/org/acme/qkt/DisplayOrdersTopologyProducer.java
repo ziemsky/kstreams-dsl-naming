@@ -1,7 +1,6 @@
 package org.acme.qkt;
 
 import static org.acme.qkt.DisplayOrdersTopologyProducer.OrderEvent.OrderEventType.RAISED;
-import static org.acme.qkt.DisplayOrdersTopologyProducer.OrderEventType.RAISED;
 
 import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
 import io.quarkus.logging.Log;
