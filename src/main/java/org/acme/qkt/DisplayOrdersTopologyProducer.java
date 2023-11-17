@@ -46,15 +46,11 @@ public class DisplayOrdersTopologyProducer extends AbstractTopologyProducer {
     protected void buildStreamWith(final StreamsBuilder builder) {
 
         final KTable<String, CustomerEvent> customersById = builder
-            .stream("customer-events-v1",
-                Consumed.with(
-                    Serdes.String(), // key: customerId
-                    new ObjectMapperSerde<>(CustomerEvent.class)
-                )
-            )
-            .peek(LOG_CONSUMING)
-            .toTable(
-                Named.as("customersByIdTable"),
+            .table("customer-events-v1",
+                Consumed.<String, CustomerEvent>as("customer-events-source")
+                    .withKeySerde(Serdes.String()) // key: customerId
+                    .withValueSerde(new ObjectMapperSerde<>(CustomerEvent.class))
+                ,
                 Materialized.<String, CustomerEvent>as(Stores.persistentKeyValueStore("customersByIdTableStore"))
                     .withKeySerde(Serdes.String()) // key: customerId
                     .withValueSerde(new ObjectMapperSerde<>(CustomerEvent.class))

@@ -2,6 +2,8 @@ package org.acme.qkt;
 
 import io.smallrye.config.ConfigMapping;
 
+import java.util.Optional;
+
 @ConfigMapping(prefix = "custom.kafka")
 public interface KafkaConfig {
 
@@ -15,5 +17,7 @@ public interface KafkaConfig {
 
     String deserializationExceptionHandler();
 
-    long commitIntervalMs();
+    Long commitIntervalMs();
+
+    Optional<Boolean> saveTopologyToFile();
 }

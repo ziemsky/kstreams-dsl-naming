@@ -1,11 +1,22 @@
 package org.acme.qkt;
 
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
+
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.event.Observes;
-import org.apache.kafka.streams.*;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Properties;
 
@@ -32,8 +43,11 @@ abstract public class AbstractTopologyProducer {
         buildStreamWith(builder);
 
         final Topology topology = builder.build();
+        final String topologyOut = topology.describe().toString();
 
-        Log.infof("%s %s", topologyName(), topology.describe().toString());
+        saveToFile(topologyOut);
+
+        Log.infof("%s %s", topologyName(), topologyOut);
 
         kafkaStreams = new KafkaStreams(topology, kafkaConfig());
 
@@ -64,5 +78,17 @@ abstract public class AbstractTopologyProducer {
     void stopStream(@Observes ShutdownEvent shutdownEvent) {
         Log.infof("%s topology STOP", topologyName());
         kafkaStreams.close(Duration.ofSeconds(60));
+    }
+
+    private void saveToFile(final String topologyOut) {
+        kafkaConfig.saveTopologyToFile().filter(isSave -> isSave).ifPresent(save -> {
+            final Path topologyFilePath = Paths.get(System.getProperty("java.io.tmpdir"), topologyName() + ".txt");
+            try {
+                Files.writeString(topologyFilePath, topologyOut, CREATE, TRUNCATE_EXISTING);
+                Log.infof("%s topology saved in %s", topologyName(), topologyFilePath);
+            } catch (IOException e) {
+                throw new UncheckedIOException("Failed to save topology file %s".formatted(topologyFilePath), e);
+            }
+        });
     }
 }

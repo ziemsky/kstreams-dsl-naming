@@ -12,6 +12,7 @@ custom:
     # To prevent malformed messages from killing the whole topology
     deserialization-exception-handler: "org.apache.kafka.streams.errors.LogAndContinueExceptionHandler"
     commit-interval-ms: 0
+    save-topology-to-file: true
 
   kafka-streams:
     application-id: kstreams-dsl-naming
