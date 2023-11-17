@@ -102,9 +102,10 @@ public class DisplayOrdersTopologyProducer extends AbstractTopologyProducer {
         final KStream<String, DisplayOrderEvent> displayOrdersByOrderId =
             displayOrdersByCustomerId
                 .map((customerId, displayOrderEvent) -> KeyValue.pair(
-                    displayOrderEvent.orderId(),
-                    displayOrderEvent
-                ))
+                        displayOrderEvent.orderId(),
+                        displayOrderEvent
+                    ),
+                    Named.as("map-key-to-orderId"))
                 .repartition(Repartitioned
                     .<String, DisplayOrderEvent>as("displayOrdersByOrderId")
                     .withKeySerde(Serdes.String()) // key: orderId
