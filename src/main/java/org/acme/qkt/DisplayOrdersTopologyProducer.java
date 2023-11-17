@@ -53,8 +53,7 @@ public class DisplayOrdersTopologyProducer extends AbstractTopologyProducer {
             .table("customer-events-v1",
                 Consumed.<String, CustomerEvent>as("customer-events")
                     .withKeySerde(Serdes.String()) // key: customerId
-                    .withValueSerde(new ObjectMapperSerde<>(CustomerEvent.class))
-                ,
+                    .withValueSerde(new ObjectMapperSerde<>(CustomerEvent.class)),
                 Materialized.<String, CustomerEvent>as(Stores.persistentKeyValueStore("customersByIdTableStore"))
                     .withKeySerde(Serdes.String()) // key: customerId
                     .withValueSerde(new ObjectMapperSerde<>(CustomerEvent.class))
