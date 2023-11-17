@@ -87,12 +87,12 @@ public class DisplayOrdersTopologyProducer extends AbstractTopologyProducer {
                 .join(
                     customersById,
                     (customerId, orderEvent, customerEvent) -> new DisplayOrderEvent(
-                        orderEvent.orderId(),
+                        orderEvent.orderId(), // key: customerId
                         customerEvent.customerName()
                     ),
                     Joined
                         .<String, OrderEvent, CustomerEvent>as("join-orders-to-customers")
-                        .withKeySerde(Serdes.String())
+                        .withKeySerde(Serdes.String()) // key: customerId
                         .withValueSerde(new ObjectMapperSerde<>(OrderEvent.class))
                 );
 
