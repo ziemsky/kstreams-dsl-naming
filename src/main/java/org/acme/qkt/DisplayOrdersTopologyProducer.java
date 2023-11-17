@@ -1,5 +1,7 @@
 package org.acme.qkt;
 
+import static org.acme.qkt.DisplayOrdersTopologyProducer.OrderEventType.RAISED;
+
 import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -14,7 +16,7 @@ public class DisplayOrdersTopologyProducer extends AbstractTopologyProducer {
 
     final static int PARTITIONS_COUNT = 1;
 
-    public static final ForeachAction<String, CustomerEvent> LOG_CONSUMING =
+    public static final ForeachAction<String, Object> LOG_CONSUMING =
         (key, event) -> Log.infof("Consuming %s", event);
 
     DisplayOrdersTopologyProducer(final KafkaConfig kafkaConfig) {
@@ -24,13 +26,13 @@ public class DisplayOrdersTopologyProducer extends AbstractTopologyProducer {
     record CustomerEvent(
         String customerId,
         String customerName
-    ){}
+    ) {}
 
     record OrderEvent(
         String orderId,
         OrderEventType eventType,
         String customerId
-    ){}
+    ) {}
 
     enum OrderEventType {
         UPDATED, // order first created or subsequently updated
@@ -40,7 +42,7 @@ public class DisplayOrdersTopologyProducer extends AbstractTopologyProducer {
     record DisplayOrderEvent(
         String orderId,
         String customerName
-    ){}
+    ) {}
 
     @Override
     protected void buildStreamWith(final StreamsBuilder builder) {
@@ -58,19 +60,21 @@ public class DisplayOrdersTopologyProducer extends AbstractTopologyProducer {
 
         final KStream<String, OrderEvent> ordersById = builder.stream(
                 "order-events-v1",
-                Consumed.with(
-                    Serdes.String(), // key: orderId
-                    new ObjectMapperSerde<>(OrderEvent.class)
-                )
+                Consumed
+                    .<String, OrderEvent>as("order-events-source")
+                    .withKeySerde(Serdes.String()) // key: orderId
+                    .withValueSerde(new ObjectMapperSerde<>(OrderEvent.class))
             )
-            .filter((orderId, orderEvent) -> OrderEventType.RAISED.equals(orderEvent.eventType()))
-            .peek((orderId, orderEvent) -> Log.infof("Consuming %s", orderEvent));
+            .filter((orderId, orderEvent) -> RAISED.equals(orderEvent.eventType()), Named.as("filter-raised-orders-only"))
+            .peek((orderId, orderEvent) -> Log.infof("Consuming %s", orderEvent), Named.as("log-order-events"));
 
         final KStream<String, OrderEvent> ordersByCustomerId = ordersById
             .map((orderId, orderEvent) -> KeyValue.pair(
-                orderEvent.customerId(),
-                orderEvent
-            ))
+                    orderEvent.customerId(),
+                    orderEvent
+                ),
+                Named.as("map-key-to-customerId")
+            )
             .repartition(Repartitioned
                 .<String, OrderEvent>as("ordersByCustomerId")
                 .withKeySerde(Serdes.String()) // key: customerId
@@ -85,7 +89,11 @@ public class DisplayOrdersTopologyProducer extends AbstractTopologyProducer {
                     (customerId, orderEvent, customerEvent) -> new DisplayOrderEvent(
                         orderEvent.orderId(),
                         customerEvent.customerName()
-                    )
+                    ),
+                    Joined
+                        .<String, OrderEvent, CustomerEvent>as("join-orders-to-customers")
+                        .withKeySerde(Serdes.String())
+                        .withValueSerde(new ObjectMapperSerde<>(OrderEvent.class))
                 );
 
         final KStream<String, DisplayOrderEvent> displayOrdersByOrderId =
@@ -101,7 +109,9 @@ public class DisplayOrdersTopologyProducer extends AbstractTopologyProducer {
                     .withNumberOfPartitions(PARTITIONS_COUNT)
                 );
 
-        displayOrdersByOrderId.to("display-order-events-v1");
+        displayOrdersByOrderId
+            .peek(LOG_CONSUMING, Named.as("log-display-order-events"))
+            .to("display-order-events-v1", Produced.as("display-orders-sink"));
     }
 
     @Override
