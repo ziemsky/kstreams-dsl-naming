@@ -33,11 +33,11 @@ public class DisplayOrdersTopologyProducer extends AbstractTopologyProducer {
         String orderId,
         OrderEventType eventType,
         String customerId
-    ) {}
-
-    enum OrderEventType {
-        UPDATED, // order first created or subsequently updated
-        RAISED   // order submitted for processing
+    ) {
+        enum OrderEventType {
+            UPDATED, // order first created or subsequently updated
+            RAISED   // order submitted for processing
+        }
     }
 
     record DisplayOrderEvent(
