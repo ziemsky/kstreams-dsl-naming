@@ -51,7 +51,7 @@ public class DisplayOrdersTopologyProducer extends AbstractTopologyProducer {
 
         final KTable<String, CustomerEvent> customersById = builder
             .table("customer-events-v1",
-                Consumed.<String, CustomerEvent>as("customer-events-source")
+                Consumed.<String, CustomerEvent>as("customer-events")
                     .withKeySerde(Serdes.String()) // key: customerId
                     .withValueSerde(new ObjectMapperSerde<>(CustomerEvent.class))
                 ,
