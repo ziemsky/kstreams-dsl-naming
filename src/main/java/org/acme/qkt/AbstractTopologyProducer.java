@@ -35,6 +35,17 @@ abstract public class AbstractTopologyProducer {
 
         Log.infof("%s %s", topologyName(), topology.describe().toString());
 
+        kafkaStreams = new KafkaStreams(topology, kafkaConfig());
+
+        kafkaStreams.setStateListener((newState, oldState) ->
+            Log.infof("%s topology state change: %s -> %s", topologyName(), oldState, newState));
+
+        Log.infof("%s topology START", topologyName());
+
+        kafkaStreams.start();
+    }
+
+    private Properties kafkaConfig() {
         Properties properties = new Properties();
         properties.put(StreamsConfig.APPLICATION_ID_CONFIG, kafkaConfig.applicationId());
         properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaConfig.bootstrapServers());
@@ -43,15 +54,7 @@ abstract public class AbstractTopologyProducer {
         properties.put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, kafkaConfig.deserializationExceptionHandler());
         properties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, kafkaConfig.commitIntervalMs());
 
-        kafkaStreams = new KafkaStreams(topology, properties);
-
-
-        kafkaStreams.setStateListener((newState, oldState) ->
-            Log.infof("%s topology state change: %s -> %s", topologyName(), oldState, newState));
-
-        Log.infof("%s topology START", topologyName());
-
-        kafkaStreams.start();
+        return properties;
     }
 
     abstract protected String topologyName();
