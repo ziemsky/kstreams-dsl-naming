@@ -23,6 +23,7 @@ public class DisplayOrdersTopologyProducer extends AbstractTopologyProducer {
         super(kafkaConfig);
     }
 
+    // <editor-fold desc="Model">
     record CustomerEvent(
         String customerId,
         String customerName
@@ -43,6 +44,7 @@ public class DisplayOrdersTopologyProducer extends AbstractTopologyProducer {
         String orderId,
         String customerName
     ) {}
+    // </editor-fold>
 
     @Override
     protected void buildStreamWith(final StreamsBuilder builder) {
