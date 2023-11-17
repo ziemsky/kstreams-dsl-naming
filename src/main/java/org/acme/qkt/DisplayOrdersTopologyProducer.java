@@ -18,7 +18,7 @@ import java.util.Properties;
 public class DisplayOrdersTopologyProducer {
 
     public static final String TOPOLOGY_NAME = "display-order-events";
-    public static final int PARTITIONS_COUNT = 3;
+    public static final int PARTITIONS_COUNT = 1;
 
     private final KafkaConfig kafkaConfig;
     KafkaStreams kafkaStreams;
@@ -77,7 +77,7 @@ public class DisplayOrdersTopologyProducer {
                     new ObjectMapperSerde<>(OrderEvent.class)
                 )
             )
-            // .filter((orderId, orderEvent) -> OrderEventType.RAISED.equals(orderEvent.eventType()))
+            .filter((orderId, orderEvent) -> OrderEventType.RAISED.equals(orderEvent.eventType()))
             .peek((orderId, orderEvent) -> Log.infof("Consuming %s", orderEvent));
 
         final KStream<String, OrderEvent> ordersByCustomerId = ordersById
@@ -133,11 +133,6 @@ public class DisplayOrdersTopologyProducer {
 
         kafkaStreams.setStateListener((newState, oldState) -> {
             Log.infof("%s topology state change %s -> %s", TOPOLOGY_NAME, oldState, newState);
-
-            // if (KafkaStreams.State.RUNNING.equals(newState)) {
-            //     Log.infof("% topology START", TOPOLOGY_NAME);
-            //     kafkaStreams.start();
-            // }
         });
 
         Log.infof("%s topology START", TOPOLOGY_NAME);
