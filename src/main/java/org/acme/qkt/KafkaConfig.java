@@ -14,4 +14,6 @@ public interface KafkaConfig {
     String defaultValueSerde();
 
     String deserializationExceptionHandler();
+
+    long commitIntervalMs();
 }

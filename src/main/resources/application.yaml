@@ -11,6 +11,7 @@ custom:
     default-value-serde: "org.acme.qkt.StringSerde"
     # To prevent malformed messages from killing the whole topology
     deserialization-exception-handler: "org.apache.kafka.streams.errors.LogAndContinueExceptionHandler"
+    commit-interval-ms: 0
 
   kafka-streams:
     application-id: kstreams-dsl-naming
