@@ -60,7 +60,8 @@ public class DisplayOrdersTopologyProducer extends AbstractTopologyProducer {
                     .withValueSerde(new ObjectMapperSerde<>(CustomerEvent.class))
             );
 
-        final KStream<String, OrderEvent> ordersById = builder.stream(
+        final KStream<String, OrderEvent> ordersById = builder
+            .stream(
                 "order-events-v1",
                 Consumed
                     .<String, OrderEvent>as("order-events-source")
