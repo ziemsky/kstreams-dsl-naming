@@ -23,10 +23,10 @@ import java.util.Properties;
 
 abstract public class AbstractTopologyProducer {
 
-    public static final ForeachAction<String, Object> LOG_EVENTS =
+    protected static final ForeachAction<String, Object> LOG_EVENTS =
         (key, event) -> Log.infof("Consuming %s", event);
 
-    public static final String TEMP_DIR = System.getProperty("java.io.tmpdir");
+    protected static final String TEMP_DIR = System.getProperty("java.io.tmpdir");
 
     private KafkaConfig kafkaConfig;
 
@@ -67,7 +67,7 @@ abstract public class AbstractTopologyProducer {
 
     private Properties kafkaConfig() {
         Properties properties = new Properties();
-        properties.put(StreamsConfig.APPLICATION_ID_CONFIG, kafkaConfig.applicationId());
+        properties.put(StreamsConfig.APPLICATION_ID_CONFIG, kafkaConfig.applicationId() + "_" + topologyName());
         properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaConfig.bootstrapServers());
         properties.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, kafkaConfig.defaultKeySerde());
         properties.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, kafkaConfig.defaultKeySerde());

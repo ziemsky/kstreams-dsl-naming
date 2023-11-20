@@ -51,7 +51,7 @@ public class DisplayOrdersTopologyProducer extends AbstractTopologyProducer {
                     .withValueSerde(new ObjectMapperSerde<>(OrderEvent.class))
             )
             .filter((orderId, orderEvent) -> RAISED.equals(orderEvent.eventType()), Named.as("filter-raised-orders-only"))
-            .peek((orderId, orderEvent) -> Log.infof("Consuming %s", orderEvent), Named.as("log-order-events"));
+            .peek(LOG_EVENTS, Named.as("log-order-events"));
 
         final KStream<String, OrderEvent> ordersByCustomerId = ordersById
             .map((orderId, orderEvent) -> KeyValue.pair(
@@ -97,7 +97,12 @@ public class DisplayOrdersTopologyProducer extends AbstractTopologyProducer {
 
         displayOrdersByOrderId
             .peek(LOG_EVENTS, Named.as("log-display-order-events"))
-            .to("display-order-events-v1", Produced.as("display-orders-sink"));
+            .to(
+                "display-order-events-v1",
+                Produced.<String, DisplayOrderEvent>as("display-orders-sink")
+                    .withKeySerde(Serdes.String())
+                    .withValueSerde(new ObjectMapperSerde<>(DisplayOrderEvent.class))
+            );
     }
 
     @Override
