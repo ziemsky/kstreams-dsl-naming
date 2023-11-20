@@ -96,7 +96,7 @@ public class DisplayOrdersTopologyProducer extends AbstractTopologyProducer {
                 );
 
         displayOrdersByOrderId
-            .peek(LOG_CONSUMING, Named.as("log-display-order-events"))
+            .peek(LOG_EVENTS, Named.as("log-display-order-events"))
             .to("display-order-events-v1", Produced.as("display-orders-sink"));
     }
 
