@@ -42,7 +42,10 @@ public class UserLoginCounterTopologyProducer extends AbstractTopologyProducer {
             .aggregate(
                 () -> new LoginCountEvent(null, 0L),
                 (userId, incomingLoginEvent, existingLoginCount) -> new LoginCountEvent(userId, existingLoginCount.count() + 1),
-                Materialized.with(Serdes.String(), new ObjectMapperSerde<>(LoginCountEvent.class))
+                Materialized.with(
+                    Serdes.String(),
+                    new ObjectMapperSerde<>(LoginCountEvent.class)
+                )
             )
 
             .toStream()
