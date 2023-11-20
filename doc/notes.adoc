@@ -1,0 +1,13 @@
+
+
+* stream objectives
+* state stores and changelog topics
+** example of topic content being lost
+*** TOTABLE changelog topic created with new number doesn't get re-populated from the source topic
+*** send customer before, send order before and after, show that after the display events don't get emitted
+*** DELETE /tmp/kafka-streams!
+
+* Processors
+
+
+* conclusions/recommendations
