@@ -73,6 +73,9 @@ services:
       kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic customer-events-v1      --replication-factor 1 --partitions 1
       kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic order-events-v1         --replication-factor 1 --partitions 1
       kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic display-order-events-v1 --replication-factor 1 --partitions 1
+      
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic login-events-v1         --replication-factor 1 --partitions 1
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic login-count-events-v1   --replication-factor 1 --partitions 1
 
       echo ''
       echo 'Topics after:'
