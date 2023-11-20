@@ -1,10 +1,13 @@
 package org.acme.qkt;
 
-import static org.acme.qkt.DisplayOrdersTopologyProducer.OrderEvent.OrderEventType.RAISED;
+import static org.acme.qkt.model.OrderEvent.OrderEventType.RAISED;
 
 import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
+import org.acme.qkt.model.CustomerEvent;
+import org.acme.qkt.model.DisplayOrderEvent;
+import org.acme.qkt.model.OrderEvent;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -16,35 +19,12 @@ public class DisplayOrdersTopologyProducer extends AbstractTopologyProducer {
 
     final static int PARTITIONS_COUNT = 1;
 
-    public static final ForeachAction<String, Object> LOG_CONSUMING =
+    public static final ForeachAction<String, Object> LOG_EVENTS =
         (key, event) -> Log.infof("Consuming %s", event);
 
     DisplayOrdersTopologyProducer(final KafkaConfig kafkaConfig) {
         super(kafkaConfig);
     }
-
-    // <editor-fold desc="Model">
-    record CustomerEvent(
-        String customerId,
-        String customerName
-    ) {}
-
-    record OrderEvent(
-        String orderId,
-        OrderEventType eventType,
-        String customerId
-    ) {
-        enum OrderEventType {
-            UPDATED, // order first created or subsequently updated
-            RAISED   // order submitted for processing
-        }
-    }
-
-    record DisplayOrderEvent(
-        String orderId,
-        String customerName
-    ) {}
-    // </editor-fold>
 
     @Override
     protected void buildStreamWith(final StreamsBuilder builder) {
